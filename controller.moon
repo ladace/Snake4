@@ -18,4 +18,4 @@ export class GVBNController
     right: => love.keyboard.isDown 'n'
     up: => love.keyboard.isDown 'g'
     down: => love.keyboard.isDown 'b'
-    speedup: => love.keyboard.isDown 'space'
+    speedup: => love.keyboard.isDown ' '

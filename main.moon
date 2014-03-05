@@ -9,7 +9,7 @@ export collisionMap = [ [false for j = 1, world.height] for i = 1, world.width ]
 markCollision = (x, y, b) ->
     collisionMap[x + 1][y + 1] = b
 
-checkCollision = (x, y) ->
+checkAvailable = (x, y) ->
     x >= 0 and y >= 0 and x < world.width and y < world.height and not collisionMap[x + 1][y + 1]
 
 export class Square
@@ -36,6 +36,7 @@ export class Snake
         @dir = {0, 1}
 
         @segs = [Seg x, y - i, color for i = 0, @length - 1]
+        @segs[1].color = {color[1] * 0.7, color[2] * 0.7, color[3] * 0.7}
 
         @food = Food(fx, fy)
         @food.color = {color[1] * 2, color[2] * 2, color[3] * 2}
@@ -66,23 +67,30 @@ export class Snake
 
         head = @segs[1]
 
-        if checkCollision head.x + @dir[1], head.y + @dir[2]
-            l = #@segs
-            tail =
-                x: @segs[l].x
-                y: @segs[l].y
-            for i = l, 2, -1
-                @segs[i].x = @segs[i - 1].x
-                @segs[i].y = @segs[i - 1].y
-            head.x += @dir[1]
-            head.y += @dir[2]
+        if checkAvailable head.x + @dir[1], head.y + @dir[2]
+            @go @dir[1], @dir[2]
+        else if @oldDir and checkAvailable head.x + @oldDir[1], head.y + @oldDir[2]
+            @dir = @oldDir
+            @go @oldDir[1], @oldDir[2]
+        @oldDir = @dir
+    go: (dx, dy) =>
+        head = @segs[1]
+        l = #@segs
+        tail =
+            x: @segs[l].x
+            y: @segs[l].y
+        for i = l, 2, -1
+            @segs[i].x = @segs[i - 1].x
+            @segs[i].y = @segs[i - 1].y
+        head.x += dx
+        head.y += dy
 
-            if head.x == @food.x and head.y == @food.y
-                @food\redist!
-                table.insert @segs, (Seg tail.x, tail.y, @color)
-            else
-                markCollision tail.x, tail.y, false
-            markCollision head.x, head.y, true
+        if head.x == @food.x and head.y == @food.y
+            @food\redist!
+            table.insert @segs, (Seg tail.x, tail.y, @color)
+        else
+            markCollision tail.x, tail.y, false
+        markCollision head.x, head.y, true
 
 export class Food extends Square
     color: {80, 100, 255}
@@ -90,14 +98,22 @@ export class Food extends Square
         @x = x or (math.random(world.width) - 1)
         @y = y or (math.random(world.height) - 1)
 
-snake1 = Snake(5, 10, 15, 5, {80, 100, 255})
-snake1.controller = ArrowController!
-snake2 = Snake(15, 10, 5, 5, {255, 100, 80})
-snake2.controller = WASDController!
---snake3 = Snake(10, 5, 10, 2, {100, 255, 80})
---snake3.controller = GVBNController!
+export snakes
 
-snakes = {snake1, snake2}
+player2 = ->
+    snake1 = Snake(5, 10, 15, 5, {80, 100, 255})
+    snake1.controller = ArrowController!
+    snake2 = Snake(15, 10, 5, 5, {255, 100, 80})
+    snake2.controller = WASDController!
+    snakes = {snake1, snake2}
+
+player3 = ->
+    player2!
+    snake3 = Snake(10, 5, 10, 2, {100, 255, 80})
+    snake3.controller = GVBNController!
+    snakes = {snakes[1], snakes[2], snake3}
+
+player3!
 
 math.randomseed(os.time())
 
