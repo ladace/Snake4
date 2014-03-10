@@ -6,11 +6,22 @@ world =
 
 export collisionMap = [ [false for j = 1, world.height] for i = 1, world.width ]
 
-markCollision = (x, y, b) ->
-    collisionMap[x + 1][y + 1] = b
+markCollision = (x, y, id) ->
+    if id
+        if collisionMap[x + 1][y + 1] == false or collisionMap[x + 1][y + 1][1] != id
+            collisionMap[x + 1][y + 1] = {id, 1}
+        else
+            collisionMap[x + 1][y + 1][2] = collisionMap[x + 1][y + 1][2] + 1
+    else
+        if collisionMap[x + 1][y + 1] != false
+            v = collisionMap[x + 1][y + 1][2]
+            if v == 1
+                collisionMap[x + 1][y + 1] = false
+            else
+                collisionMap[x + 1][y + 1][2] = v - 1
 
-checkAvailable = (x, y) ->
-    x >= 0 and y >= 0 and x < world.width and y < world.height and not collisionMap[x + 1][y + 1]
+checkAvailable = (x, y, id) ->
+    x >= 0 and y >= 0 and x < world.width and y < world.height and ((not collisionMap[x + 1][y + 1]) or collisionMap[x + 1][y + 1][1] == id)
 
 export class Square
     new: (x, y)=>
@@ -24,22 +35,27 @@ export class Square
 
 export class Snake
     class Seg extends Square
-        new: (x, y, c)=>
+        new: (x, y, c, id)=>
             super x, y
-            markCollision @x, @y, true
+            markCollision @x, @y, id
             @color = c
         color: {128, 180, 255}
+    count = 0
     controller: ArrowController!
     new: (x, y, fx, fy, color)=>
         @color = color
         @length = 6
         @dir = {0, 1}
 
-        @segs = [Seg x, y - i, color for i = 0, @length - 1]
+        @id = count
+        count = count + 1
+
+        @segs = [Seg x, y - i, color, @id for i = 0, @length - 1]
         @segs[1].color = {color[1] * 0.7, color[2] * 0.7, color[3] * 0.7}
 
         @food = Food(fx, fy)
         @food.color = {color[1] * 2, color[2] * 2, color[3] * 2}
+
 
         @timer = 0
     draw: =>
@@ -64,12 +80,11 @@ export class Snake
             @timer = 0
             @onCrossGrid!
     onCrossGrid: =>
-
         head = @segs[1]
 
-        if checkAvailable head.x + @dir[1], head.y + @dir[2]
+        if checkAvailable head.x + @dir[1], head.y + @dir[2], @id
             @go @dir[1], @dir[2]
-        else if @oldDir and checkAvailable head.x + @oldDir[1], head.y + @oldDir[2]
+        else if @oldDir and checkAvailable head.x + @oldDir[1], head.y + @oldDir[2], @id
             @dir = @oldDir
             @go @oldDir[1], @oldDir[2]
         @oldDir = @dir
@@ -90,7 +105,7 @@ export class Snake
             table.insert @segs, (Seg tail.x, tail.y, @color)
         else
             markCollision tail.x, tail.y, false
-        markCollision head.x, head.y, true
+        markCollision head.x, head.y, @id
 
 export class Food extends Square
     color: {80, 100, 255}
