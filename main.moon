@@ -6,6 +6,12 @@ world =
 
 export collisionMap = [ [false for j = 1, world.height] for i = 1, world.width ]
 
+wrap = (p) ->
+    p.x += world.width if p.x < 0
+    p.y += world.height if p.y < 0
+    p.x -= world.width if p.x >= world.width
+    p.y -= world.height if p.y >= world.height
+
 markCollision = (x, y, id) ->
     if id
         if collisionMap[x + 1][y + 1] == false or collisionMap[x + 1][y + 1][1] != id
@@ -21,7 +27,11 @@ markCollision = (x, y, id) ->
                 collisionMap[x + 1][y + 1][2] = v - 1
 
 checkAvailable = (x, y, id) ->
-    x >= 0 and y >= 0 and x < world.width and y < world.height and ((not collisionMap[x + 1][y + 1]) or collisionMap[x + 1][y + 1][1] == id)
+    p =
+        x:x
+        y:y
+    wrap p
+    p.x >= 0 and p.y >= 0 and p.x < world.width and p.y < world.height and ((not collisionMap[p.x + 1][p.y + 1]) or collisionMap[p.x + 1][p.y + 1][1] == id)
 
 export class Square
     new: (x, y)=>
@@ -56,10 +66,10 @@ export class Snake
         @food = Food(fx, fy)
         @food.color = {color[1] * 2, color[2] * 2, color[3] * 2}
 
-
         @timer = 0
     draw: =>
-        for s in *@segs
+        for i = #@segs, 1, -1
+            s = @segs[i]
             s\draw!
     drawFood: =>
         @food\draw!
@@ -99,6 +109,8 @@ export class Snake
             @segs[i].y = @segs[i - 1].y
         head.x += dx
         head.y += dy
+
+        wrap head
 
         if head.x == @food.x and head.y == @food.y
             @food\redist!
